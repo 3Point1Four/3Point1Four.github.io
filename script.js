@@ -1,3 +1,62 @@
+const pirannName = document.querySelector(".pirann-name");
+const pirannText = document.querySelector("#pirann-text");
+const pirannBase = "Pirann";
+const pirannShort = "Pi";
+const pirannAlias = "3point1four";
+let pirannTimer = null;
+let pirannMode = "base";
+
+function typeName(target, onDone) {
+  clearInterval(pirannTimer);
+  const current = pirannText.textContent;
+  const isDeleting = target.length < current.length;
+  let index = isDeleting ? current.length : 0;
+
+  pirannTimer = setInterval(() => {
+    if (isDeleting) {
+      pirannText.textContent = current.slice(0, --index);
+    } else {
+      pirannText.textContent = target.slice(0, ++index);
+    }
+
+    if (index === (isDeleting ? target.length : target.length)) {
+      clearInterval(pirannTimer);
+      pirannText.textContent = target;
+      if (onDone) onDone();
+    }
+  }, 85);
+}
+
+function setPirannMode(mode) {
+  pirannMode = mode;
+  if (mode === "base") typeName(pirannBase);
+  if (mode === "hover") typeName(pirannShort);
+  if (mode === "alias") typeName(pirannAlias);
+}
+
+pirannName.addEventListener("mouseenter", () => {
+  if (pirannMode !== "alias") setPirannMode("hover");
+});
+
+pirannName.addEventListener("mouseleave", () => {
+  if (pirannMode === "hover") setPirannMode("base");
+});
+
+document.addEventListener("selectionchange", () => {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !pirannName.contains(selection.anchorNode)) return;
+
+  if (pirannMode === "hover" || pirannMode === "base") {
+    setPirannMode("alias");
+    requestAnimationFrame(() => {
+      const range = document.createRange();
+      range.selectNodeContents(pirannText);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+  }
+});
+
 const codeSamples = {
   python: {
     file: "model.py",

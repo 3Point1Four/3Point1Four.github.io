@@ -47,6 +47,12 @@ a { color: inherit; }
 .eyebrow { margin: 0 0 20px; font-size: .7rem; font-weight: 800; letter-spacing: .18em; }
 .hero h1, h2 { margin: 0; letter-spacing: -.055em; line-height: .94; }
 .hero h1 { font-size: clamp(3.8rem, 8vw, 7.6rem); }
+.pirann-name { position: relative; display: inline-block; cursor: default; }
+.pirann-name > em { transition: opacity .28s ease, transform .28s ease; }
+.pirann-hover { position: absolute; inset: 0; opacity: 0; transform: translateY(.12em); }
+.pirann-name:hover > em:first-child { opacity: 0; transform: translateY(-.12em); }
+.pirann-name:hover .pirann-hover { opacity: 1; transform: translateY(0); }
+.pirann-name::selection, .pirann-name *::selection { background: #19a7a5; color: var(--ink); }
 h2 { font-size: clamp(3rem, 6vw, 5.8rem); }
 em { font-family: var(--serif); font-weight: 400; }
 .hero-text { max-width: 580px; margin: 30px 0; color: var(--muted); font-size: clamp(1rem, 1.5vw, 1.2rem); }

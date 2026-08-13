@@ -62,7 +62,6 @@ document.querySelectorAll(".nav-links a").forEach(link => {
 const pirannName = document.querySelector(".pirann-name");
 const pirannVisual = document.querySelector(".pirann-visual");
 const pirannSelectable = document.querySelector(".pirann-selectable");
-const pirannPeriod = document.querySelector(".pirann-period");
 const pirannFull = "Pirann";
 const pirannAlias = "3point1four";
 let pirannTimer = null;
@@ -70,38 +69,18 @@ let pirannHovering = false;
 let selectionActive = false;
 let currentVisible = pirannFull.length;
 
-function measureText(text) {
-  const probe = document.createElement("span");
-  const styles = getComputedStyle(pirannVisual);
-  probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;pointer-events:none;font-family:${styles.fontFamily};font-size:${styles.fontSize};font-style:${styles.fontStyle};font-weight:${styles.fontWeight};letter-spacing:${styles.letterSpacing};`;
-  probe.textContent = text;
-  pirannName.appendChild(probe);
-  const width = probe.getBoundingClientRect().width;
-  probe.remove();
-  return width;
-}
-
-function positionPeriod(text) {
-  pirannPeriod.style.left = `${measureText(text)}px`;
-}
-
 function renderPirann(count) {
-  const text = pirannFull.slice(0, count);
-  pirannVisual.textContent = text;
-  positionPeriod(text);
+  pirannVisual.textContent = pirannFull.slice(0, count) + ".";
   currentVisible = count;
 }
 
 function renderAlias(count) {
-  const text = pirannAlias.slice(0, count);
-  pirannVisual.textContent = text;
-  positionPeriod(text);
+  pirannVisual.textContent = pirannAlias.slice(0, count) + ".";
 }
 
 function animateTo(targetCount) {
   clearInterval(pirannTimer);
   if (currentVisible === targetCount) return;
-
   const direction = targetCount > currentVisible ? 1 : -1;
   pirannTimer = setInterval(() => {
     currentVisible += direction;
@@ -130,29 +109,15 @@ function getSelectionCount() {
   const textNode = pirannSelectable.firstChild;
   if (!textNode) return 0;
 
-  const range = selection.getRangeAt(0);
-  const touchesName = pirannName.contains(range.commonAncestorContainer) ||
-    pirannName.contains(selection.anchorNode) ||
-    pirannName.contains(selection.focusNode);
-  if (!touchesName) return 0;
+  const anchorInside = selection.anchorNode === textNode;
+  const focusInside = selection.focusNode === textNode;
+  if (!anchorInside || !focusInside) return 0;
 
-  // The selectable alias is one plain text node. Its DOM offsets are exact
-  // character positions, so the selected prefix is deterministic and does not
-  // depend on font metrics, viewport width, or mouse coordinates.
-  let start = -1;
-  let end = -1;
-
-  if (selection.anchorNode === textNode) start = selection.anchorOffset;
-  if (selection.focusNode === textNode) end = selection.focusOffset;
-
-  if (start < 0 || end < 0) return 0;
-
-  return Math.max(0, Math.min(pirannAlias.length, Math.max(start, end)));
+  return Math.max(0, Math.min(pirannAlias.length, Math.max(selection.anchorOffset, selection.focusOffset)));
 }
 
 document.addEventListener("selectionchange", () => {
   const count = getSelectionCount();
-
   if (count > 0) {
     selectionActive = true;
     clearInterval(pirannTimer);
@@ -168,11 +133,6 @@ document.addEventListener("selectionchange", () => {
 });
 
 pirannSelectable.addEventListener("mousedown", () => clearInterval(pirannTimer));
-
-window.addEventListener("resize", () => {
-  if (selectionActive) renderAlias(getSelectionCount() || 1);
-  else positionPeriod(pirannVisual.textContent);
-});
 
 renderPirann(pirannFull.length);
 

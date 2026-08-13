@@ -50,22 +50,26 @@ a { color: inherit; }
 .pirann-name {
   position: relative;
   display: inline-block;
-  width: fit-content;
-  min-width: 6ch;
   max-width: 100%;
   height: 1em;
   cursor: default;
   vertical-align: baseline;
   isolation: isolate;
-  overflow: visible;
+}
+.pirann-name::before {
+  content: "3point1four.";
+  display: inline-block;
+  visibility: hidden;
+  white-space: nowrap;
+  max-width: 100%;
 }
 .pirann-visual,
 .pirann-selectable {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 0 auto auto 0;
   display: block;
   white-space: nowrap;
-  font-family: var(--serif);
+  font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
   font-weight: 400;
   letter-spacing: inherit;
@@ -86,22 +90,9 @@ a { color: inherit; }
   background: transparent;
   color: transparent;
 }
-.pirann-period {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 3;
-  pointer-events: none;
-}
 @media (max-width: 800px) {
-  .pirann-name {
-    min-width: 5.5ch;
-    max-width: calc(100vw - 32px);
-  }
-  .pirann-visual,
-  .pirann-selectable {
-    max-width: calc(100vw - 32px);
-  }
+  .pirann-name { max-width: 100%; }
+  .pirann-visual, .pirann-selectable { max-width: 100%; }
 }
 h2 { font-size: clamp(3rem, 6vw, 5.8rem); }
 em { font-family: var(--serif); font-weight: 400; }

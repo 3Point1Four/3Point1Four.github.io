@@ -58,88 +58,123 @@ document.querySelectorAll(".nav-links a").forEach(link => {
 
 
 
-/* Pirann / Pi / 3point1four interaction.
-   The visual layer is separate from the selectable text layer so the
-   element keeps a fixed footprint and never moves the hover target. */
+/* Pirann / Pi / 3point1four interaction. */
 const pirannName = document.querySelector(".pirann-name");
 const pirannVisual = document.querySelector(".pirann-visual");
 const pirannSelectable = document.querySelector(".pirann-selectable");
+const pirannPeriod = document.querySelector(".pirann-period");
 const pirannFull = "Pirann";
-const pirannShort = "Pi";
 const pirannAlias = "3point1four";
-let pirannHoverTimer;
+let pirannTimer = null;
 let pirannHovering = false;
+let selectionActive = false;
+let currentVisible = pirannFull.length;
 
-function renderPirann(text, visibleCount = text.length, highlightedCount = 0) {
-  pirannVisual.innerHTML = "";
-  [...text].forEach((letter, index) => {
-    const span = document.createElement("span");
-    span.className = "pirann-letter";
-    span.textContent = letter;
-    if (index >= visibleCount) span.classList.add("is-hidden");
-    if (index < highlightedCount && index < visibleCount) span.classList.add("is-highlighted");
-    pirannVisual.appendChild(span);
-  });
+function measureText(text) {
+  const probe = document.createElement("span");
+  const styles = getComputedStyle(pirannVisual);
+  probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;pointer-events:none;font-family:${styles.fontFamily};font-size:${styles.fontSize};font-style:${styles.fontStyle};font-weight:${styles.fontWeight};letter-spacing:${styles.letterSpacing};`;
+  probe.textContent = text;
+  pirannName.appendChild(probe);
+  const width = probe.getBoundingClientRect().width;
+  probe.remove();
+  return width;
 }
 
-function animatePirann(target) {
-  clearInterval(pirannHoverTimer);
-  const current = [...pirannVisual.textContent];
-  const targetLetters = [...target];
-  const maxLength = Math.max(current.length, targetLetters.length);
-  let step = 0;
+function positionPeriod(text) {
+  pirannPeriod.style.left = `${measureText(text)}px`;
+}
 
-  pirannHoverTimer = setInterval(() => {
-    step += 1;
-    if (step > maxLength) {
-      clearInterval(pirannHoverTimer);
-      return;
+function renderPirann(count) {
+  const text = pirannFull.slice(0, count);
+  pirannVisual.textContent = text;
+  positionPeriod(text);
+  currentVisible = count;
+}
+
+function renderAlias(count) {
+  const text = pirannAlias.slice(0, count);
+  pirannVisual.textContent = text;
+  positionPeriod(text);
+}
+
+function animateTo(targetCount) {
+  clearInterval(pirannTimer);
+  if (currentVisible === targetCount) return;
+
+  const direction = targetCount > currentVisible ? 1 : -1;
+  pirannTimer = setInterval(() => {
+    currentVisible += direction;
+    renderPirann(currentVisible);
+    if (currentVisible === targetCount) {
+      clearInterval(pirannTimer);
+      pirannTimer = null;
     }
-    if (target === pirannShort) {
-      renderPirann(pirannFull, Math.max(pirannShort.length, pirannFull.length - step));
-    } else {
-      renderPirann(pirannFull, Math.min(pirannFull.length, pirannShort.length + step));
-    }
-  }, 90);
+  }, 22);
 }
 
 pirannName.addEventListener("pointerenter", () => {
   pirannHovering = true;
-  animatePirann(pirannShort);
+  if (!selectionActive) animateTo(2);
 });
 
 pirannName.addEventListener("pointerleave", () => {
   pirannHovering = false;
-  animatePirann(pirannFull);
+  if (!selectionActive) animateTo(pirannFull.length);
 });
 
-let lastSelectionCount = 0;
+function getSelectionCount() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return 0;
+
+  const textNode = pirannSelectable.firstChild;
+  if (!textNode) return 0;
+
+  const range = selection.getRangeAt(0);
+  const touchesName = pirannName.contains(range.commonAncestorContainer) ||
+    pirannName.contains(selection.anchorNode) ||
+    pirannName.contains(selection.focusNode);
+  if (!touchesName) return 0;
+
+  // The selectable alias is one plain text node. Its DOM offsets are exact
+  // character positions, so the selected prefix is deterministic and does not
+  // depend on font metrics, viewport width, or mouse coordinates.
+  let start = -1;
+  let end = -1;
+
+  if (selection.anchorNode === textNode) start = selection.anchorOffset;
+  if (selection.focusNode === textNode) end = selection.focusOffset;
+
+  if (start < 0 || end < 0) return 0;
+
+  return Math.max(0, Math.min(pirannAlias.length, Math.max(start, end)));
+}
 
 document.addEventListener("selectionchange", () => {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
-  if (!pirannName.contains(selection.anchorNode) || !pirannName.contains(selection.focusNode)) return;
+  const count = getSelectionCount();
 
-  const selectedText = selection.toString();
-  const count = Math.min(selectedText.length, pirannAlias.length);
-  if (!count || count === lastSelectionCount) return;
-  lastSelectionCount = count;
+  if (count > 0) {
+    selectionActive = true;
+    clearInterval(pirannTimer);
+    renderAlias(count);
+    return;
+  }
 
-  clearInterval(pirannHoverTimer);
-  renderPirann(pirannAlias, count, count);
+  if (selectionActive) {
+    selectionActive = false;
+    if (pirannHovering) animateTo(2);
+    else animateTo(pirannFull.length);
+  }
 });
 
-document.addEventListener("mouseup", () => {
-  requestAnimationFrame(() => {
-    const selection = window.getSelection();
-    if (!selection || selection.toString() === "" || !pirannName.contains(selection.anchorNode)) {
-      lastSelectionCount = 0;
-      renderPirann(pirannHovering ? pirannFull : pirannFull, pirannHovering ? pirannShort.length : pirannFull.length);
-    }
-  });
+pirannSelectable.addEventListener("mousedown", () => clearInterval(pirannTimer));
+
+window.addEventListener("resize", () => {
+  if (selectionActive) renderAlias(getSelectionCount() || 1);
+  else positionPeriod(pirannVisual.textContent);
 });
 
-renderPirann(pirannFull, pirannFull.length);
+renderPirann(pirannFull.length);
 
 document.querySelector("#year").textContent = new Date().getFullYear();
 showCode("python");
